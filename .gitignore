@@ -1,0 +1,5 @@
+.ghc.environment.*
+.ghcid
+.stack-work/
+dist-newstyle/
+run
