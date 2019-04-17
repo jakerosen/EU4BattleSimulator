@@ -1,10 +1,19 @@
 module BattleSimulator.Player where
 
-import Data.Vector
+import Data.Map (Map)
+import qualified Data.Map as Map
 import BattleSimulator.Node
 
 data Player
   = Player
-  { front :: Vector Node
-  , back :: Vector Node
+  { role :: Role
+  , line :: Map Location Node
   }
+
+data Role = Attacker | Defender;
+
+-- front or back line
+data Side = Front | Back
+
+-- location on a battlefield, front or back line with id number of node
+type Location = (Side, Int)
