@@ -4,7 +4,7 @@ import Data.Foldable
 
 main :: IO ()
 main = do
-  formatBattleLines
+  pure ()
 
 formatBattleLines :: IO ()
 formatBattleLines = do
