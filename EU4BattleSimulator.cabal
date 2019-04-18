@@ -15,4 +15,6 @@ executable EU4BattleSimulator
     BattleSimulator.Player
     BattleSimulator.Node
     BattleSimulator.Unit
+    BattleSimulator.Battle
+    BattleSimulator.Phase
   default-language: Haskell2010
