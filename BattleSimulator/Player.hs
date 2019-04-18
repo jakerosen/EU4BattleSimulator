@@ -1,8 +1,9 @@
 module BattleSimulator.Player where
 
 import Data.Map (Map)
-import qualified Data.Map as Map
-import BattleSimulator.Node
+import qualified Data.Map.Strict as Map
+-- import BattleSimulator.Node -- candidate to be removed
+import BattleSimulator.Unit
 
 -- note: I'm punting on additional fire and shock modifiers for now.
 -- They might go here, or might go elsewhere.
@@ -13,7 +14,7 @@ data Player
   , terrainMod :: Int
   , generalFire :: Int
   , generalShock :: Int
-  , line :: Map Location Node
+  , line :: Map Location (Maybe Unit)
   }
 
 data Role = Attacker | Defender;
