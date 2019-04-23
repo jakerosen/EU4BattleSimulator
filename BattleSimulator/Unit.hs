@@ -1,5 +1,8 @@
 module BattleSimulator.Unit where
 
+import GHC.Generics
+import Control.Lens
+
 data Unit
   = Unit
   { unitType :: UnitType -- artillery can attack from back line for 50% dmg
@@ -24,9 +27,15 @@ data Unit
 
   , oMoralePips :: Int
   , dMoralePips :: Int
-  }
+  } deriving stock (Generic)
 
 data UnitType
   = Infantry
   | Cavalry
   | Artillery
+
+takeCasualties :: (Int, Int) -> Unit -> Unit
+takeCasualties (casualties, morale) unit =
+  unit
+    & the @"strength" %~ (-casualties)
+    & the @"currentMorale" %~ (-morale)

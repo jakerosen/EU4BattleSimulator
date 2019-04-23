@@ -17,116 +17,50 @@ import BattleSimulator.Phase
 engageBattleDay :: Phase -> Player -> Player -> (Player, Player)
 engageBattleDay
   phase
-  (Player role1 diceRoll1 tmod1 fire1 shock1 line1)
-  (Player role2 diceRoll2 tmod2 fire2 shock2 line2)
+  p1@(Player role1 diceRoll1 tmod1 fire1 shock1 line1)
+  p2@(Player role2 diceRoll2 tmod2 fire2 shock2 line2)
   = (endOfDayPlayer1, endOfDayPlayer2)
 
     where
-      phaseSkill1 :: Int
-      phaseSkill1 = case phase of
-        Fire -> fire1
-        Shock -> shock1
-
-      phaseSkill2 :: Int
-      phaseSkill2 = case phase of
-        Fire -> fire2
-        Shock -> shock2
-
-      diceRollPhase1 :: Int
-      diceRollPhase1 = undefined
-
-      diceRollPhase2 :: Int
-      diceRollPhase2 = undefined
-
-      diceRollMorale1 :: Int
-      diceRollMorale1 = undefined
-
-      diceRollMorale2 :: Int
-      diceRollMorale2 = undefined
-
-      findTarget
-        :: Position
-        -> Map Position (Maybe Unit)            -- attacker
-        -> Map Position (Maybe Unit)            -- defender
-        -> Maybe Int                              -- target ID#, if found
-      findTarget = undefined
-
-      -- this is the casualties that line1 inflicts on line2
-      -- ( ID number of unit inflicted upon
-      -- , casualties
-      -- , morale damage )
+      -- casualties inflicted from player2 on line1
       inflictedCasualties1 :: Vector (Int, Int)
-      inflictedCasualties1 =
-        -- accumulate the results of the casualties list into a vector
-        -- of casualties
-        Vector.accum
-          (\(c1, m1) (c2, m2) -> (c1 + c2, m1 + m2)) -- add casualties
-                                                     -- and morale
-          (Vector.replicate 40 (0,0)) -- initial casualties (0,0)
-          casualtiesList
-        where
-          -- plan:
-          -- map over 0-39 front and back for line1 (which is a Map),
-          -- for each unit in that map (i.e. for each unit on that side's
-          -- field), attempt to find a target.  If found return
-          -- Just (ID# of target, (casualties, Morale)) for casualties
-          -- inflicted to the target.  Apply, using Vector.(//) (bulk update),
-          -- to a vector that represents casualty damage.  Return that
-          -- resulting Vector.
+      inflictedCasualties1 = inflictedCasualties phase p2 p1
 
-          -- -- casualties, initialized to 0 casualties and 0 morale.  The
-          -- -- index represents the ID# of the target taking the casualties.
-          -- initialCasualties :: Vector (Int, Int)
-          -- initialCasualties = Vector.replicate 40 (0, 0)
+      -- casualties inflicted from player1 on line2
+      inflictedCasualties2 :: Vector (Int, Int)
+      inflictedCasualties2 = inflictedCasualties phase p1 p2
 
-          casualtiesList :: [(Int, (Int, Int))]
-          casualtiesList = catMaybes
-            $  (attemptInflict <$> (zip (repeat Front) [0,39]))
-            ++ (attemptInflict <$> (zip (repeat Back) [0,39]))
-            where
-              -- This function needs to have the unit that corresponds to
-              -- this index attempt to find a valid target to inflict
-              -- casualties to.  If found, inflict those casualties to that
-              -- unit.
-              attemptInflict :: Position -> Maybe (Int, (Int, Int))
-              attemptInflict pos@(l, i) =
-                (\target ->
-                  (target, inflictCasualties
-                    diceRollPhase1
-                    diceRollMorale1
-                    (line1 ! pos)               -- TODO: fix type error
-                    (line2 ! (Front, target))   -- TODO: fix type error
-                )) <$>
-                findTarget pos line1 line2
-                where
-                  casualties
-                    :: Int            -- index of attacker
-                    -> Int            -- index of defender
-                    -> Int            -- casualties inflicted
-                  casualties = undefined
-
-                  morale :: Int -> Int
-                  morale = undefined
+      applyCasualties
+        :: Map Position (Maybe Unit)
+        -> Int
+        -> (Int, Int)
+        -> Map Position (Maybe Unit)
+      applyCasualties line i (casualties, morale) = undefined
 
 
-      endOfDayLine2 :: Map Position (Maybe Unit)
-      endOfDayLine2
+      endOfDayLine1 :: Map Position (Maybe Unit)
+      endOfDayLine1
         -- I'm going to have to think about how this function works.  It's
         -- line one that would find the targets to deal damage to line2, but
         -- I can't map over line1 to get the casualty results for line2, since
         -- it would be inherently placing the results into line1.  That
         -- doesn't make sense.  I probably need my own function for doing
         -- this thing.
-        -- = Map.mapWithKey _ line1
-        = undefined
 
-      endOfDayLine1 :: Map Position (Maybe Unit)
-      endOfDayLine1
+        -- apply inflictedCasualties1 to line1
+        = Vector.ifoldl'
+          applyCasualties -- Map of line -> (casualties, morale) -> result Map
+          line1           -- default value for fold
+          inflictedCasualties1
+
+
+      endOfDayLine2 :: Map Position (Maybe Unit)
+      endOfDayLine2
         = undefined
 
       endOfDayPlayer1 :: Player
       endOfDayPlayer1
-        = Player role2 diceRoll2 tmod2 fire2 shock2 endOfDayLine2
+        = Player role1 diceRoll1 tmod1 fire1 shock1 endOfDayLine1
 
       endOfDayPlayer2 :: Player
       endOfDayPlayer2
@@ -155,3 +89,74 @@ rollDice
   -> Int              -- Dice roll result
 rollDice roll tmod atkGen defGen atkUnit defUnit
   = roll + tmod + atkGen - defGen + atkUnit - defUnit
+
+-- this is the (casualties, morale) that the first player inflicts
+-- on the second
+-- the index of the vector is the target taking the casualties
+inflictedCasualties :: Phase -> Player -> Player -> Vector (Int, Int)
+inflictedCasualties
+  phase
+  (Player role1 diceRoll1 tmod1 fire1 shock1 line1)
+  (Player role2 diceRoll2 tmod2 fire2 shock2 line2)
+  =
+    -- accumulate the results of the casualties list into a vector
+    -- of casualties
+    Vector.accum
+      (\(c1, m1) (c2, m2) -> (c1 + c2, m1 + m2)) -- add casualties
+                                                 -- and morale
+      (Vector.replicate 40 (0,0)) -- initial casualties (0,0)
+      casualtiesList
+  where
+    phaseSkill1 :: Int
+    phaseSkill1 = case phase of
+      Fire -> fire1
+      Shock -> shock1
+
+    phaseSkill2 :: Int
+    phaseSkill2 = case phase of
+      Fire -> fire2
+      Shock -> shock2
+
+    diceRollPhase1 :: Int
+    diceRollPhase1 = undefined
+
+    diceRollPhase2 :: Int
+    diceRollPhase2 = undefined
+
+    diceRollMorale1 :: Int
+    diceRollMorale1 = undefined
+
+    diceRollMorale2 :: Int
+    diceRollMorale2 = undefined
+
+    findTarget :: Position -> Maybe Int -- target ID#, if found
+    findTarget = undefined
+
+    -- plan:
+    -- map over 0-39 front and back for line1 (which is a Map),
+    -- for each unit in that map (i.e. for each unit on that side's
+    -- field), attempt to find a target.  If found return
+    -- Just (ID# of target, (casualties, Morale)) for casualties
+    -- inflicted to the target.  Apply, using Vector.(//) (bulk update),
+    -- to a vector that represents casualty damage.  Return that
+    -- resulting Vector.
+    casualtiesList :: [(Int, (Int, Int))]
+    casualtiesList = catMaybes
+      $  (attemptInflict <$> (zip (repeat Front) [0,39]))
+      ++ (attemptInflict <$> (zip (repeat Back) [0,39]))
+      where
+        -- This function needs to have the unit that corresponds to
+        -- this index attempt to find a valid target to inflict
+        -- casualties to.  If found, inflict those casualties to that
+        -- unit.
+        attemptInflict :: Position -> Maybe (Int, (Int, Int))
+        attemptInflict pos@(l, i) = do
+          target :: Int <- findTarget pos
+          unitAttacker :: Unit <- line1 ! pos
+          unitTarget :: Unit <- line2 ! (Front, target)
+          Just
+            (target, (inflictCasualties
+              diceRollPhase1
+              diceRollMorale1
+              unitAttacker
+                unitTarget))

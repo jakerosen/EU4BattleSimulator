@@ -1,7 +1,7 @@
 module BattleSimulator.Player where
 
 import Data.Map (Map)
-import qualified Data.Map.Strict as Map
+-- import qualified Data.Map.Strict as Map
 -- import BattleSimulator.Node -- candidate to be removed
 import BattleSimulator.Unit
 
@@ -21,6 +21,7 @@ data Role = Attacker | Defender
 
 -- front or back line
 data Line = Front | Back
+  deriving (Eq, Ord)
 
 -- location on a battlefield, front or back line with id number of node
 -- I'm considering having the numbering start with 0 in the middle,

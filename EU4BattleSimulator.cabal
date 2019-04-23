@@ -12,6 +12,11 @@ executable EU4BattleSimulator
       base >=4.7 && <5
     , vector
     , containers
+    , lens
+  default-extensions:
+    ScopedTypeVariables
+    DeriveGeneric
+    DerivingStrategies
   other-modules:
     BattleSimulator.Player
     BattleSimulator.Node
