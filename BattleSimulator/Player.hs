@@ -14,10 +14,10 @@ data Player
   , terrainMod :: Int
   , generalFire :: Int
   , generalShock :: Int
-  , line :: Map Location (Maybe Unit)
+  , line :: Map Position (Maybe Unit)
   }
 
-data Role = Attacker | Defender;
+data Role = Attacker | Defender
 
 -- front or back line
 data Line = Front | Back
@@ -28,4 +28,10 @@ data Line = Front | Back
 -- the left.  Consequently, one side (Attacker or Defender) will have to be
 -- reversed so that the nodes line up when they face each other.  I believe
 -- that this will be the most convenient setup for finding targets.
-type Location = (Line, Int)
+
+-- About the above: I decided against the approach of putting 0 in the middle
+-- because it is possible to have an even number of troops, which would throw
+-- off the easy calculation of the target across.  Instead, I'll index from
+-- 0 on the left and 39 on the right, with no mirroring.  As such, the target
+-- across from x can be calculated as target = 39 - x.
+type Position = (Line, Int)
