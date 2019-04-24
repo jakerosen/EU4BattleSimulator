@@ -13,10 +13,13 @@ executable EU4BattleSimulator
     , vector
     , containers
     , lens
+    , generic-lens
   default-extensions:
     ScopedTypeVariables
     DeriveGeneric
     DerivingStrategies
+    TypeApplications
+    DataKinds
   other-modules:
     BattleSimulator.Player
     BattleSimulator.Node

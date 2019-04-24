@@ -23,17 +23,17 @@ engageBattleDay
 
     where
       -- casualties inflicted from player2 on line1
-      inflictedCasualties1 :: Vector (Int, Int)
+      inflictedCasualties1 :: Vector (Int, Double)
       inflictedCasualties1 = inflictedCasualties phase p2 p1
 
       -- casualties inflicted from player1 on line2
-      inflictedCasualties2 :: Vector (Int, Int)
+      inflictedCasualties2 :: Vector (Int, Double)
       inflictedCasualties2 = inflictedCasualties phase p1 p2
 
       applyCasualties
         :: Map Position (Maybe Unit)
         -> Int
-        -> (Int, Int)
+        -> (Int, Double)
         -> Map Position (Maybe Unit)
       applyCasualties line i (casualties, morale) = undefined
 
@@ -76,7 +76,7 @@ inflictCasualties
   -> Int              -- Dice roll of morale attacker
   -> Unit             -- Attacking unit
   -> Unit             -- Defending unit
-  -> (Int, Int)       -- return (casualties, morale) inflicted
+  -> (Int, Double)       -- return (casualties, morale) inflicted
 inflictCasualties dieRoll atkUnit defUnit = undefined
 
 rollDice
@@ -93,7 +93,7 @@ rollDice roll tmod atkGen defGen atkUnit defUnit
 -- this is the (casualties, morale) that the first player inflicts
 -- on the second
 -- the index of the vector is the target taking the casualties
-inflictedCasualties :: Phase -> Player -> Player -> Vector (Int, Int)
+inflictedCasualties :: Phase -> Player -> Player -> Vector (Int, Double)
 inflictedCasualties
   phase
   (Player role1 diceRoll1 tmod1 fire1 shock1 line1)
@@ -140,7 +140,7 @@ inflictedCasualties
     -- inflicted to the target.  Apply, using Vector.(//) (bulk update),
     -- to a vector that represents casualty damage.  Return that
     -- resulting Vector.
-    casualtiesList :: [(Int, (Int, Int))]
+    casualtiesList :: [(Int, (Int, Double))]
     casualtiesList = catMaybes
       $  (attemptInflict <$> (zip (repeat Front) [0,39]))
       ++ (attemptInflict <$> (zip (repeat Back) [0,39]))
@@ -149,7 +149,7 @@ inflictedCasualties
         -- this index attempt to find a valid target to inflict
         -- casualties to.  If found, inflict those casualties to that
         -- unit.
-        attemptInflict :: Position -> Maybe (Int, (Int, Int))
+        attemptInflict :: Position -> Maybe (Int, (Int, Double))
         attemptInflict pos@(l, i) = do
           target :: Int <- findTarget pos
           unitAttacker :: Unit <- line1 ! pos

@@ -1,7 +1,9 @@
 module BattleSimulator.Unit where
 
 import GHC.Generics
+import Data.Function
 import Control.Lens
+import Data.Generics.Product.Any
 
 data Unit
   = Unit
@@ -34,8 +36,8 @@ data UnitType
   | Cavalry
   | Artillery
 
-takeCasualties :: (Int, Int) -> Unit -> Unit
+takeCasualties :: (Int, Double) -> Unit -> Unit
 takeCasualties (casualties, morale) unit =
   unit
-    & the @"strength" %~ (-casualties)
-    & the @"currentMorale" %~ (-morale)
+    & the @"strength" %~ (subtract casualties)
+    & the @"currentMorale" %~ (subtract morale)
