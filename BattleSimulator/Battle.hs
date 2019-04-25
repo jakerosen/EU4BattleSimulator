@@ -1,4 +1,5 @@
 module BattleSimulator.Battle where
+import Data.List
 import Data.Maybe
 import Data.Map (Map, (!))
 import Data.Vector (Vector)
@@ -35,11 +36,12 @@ engageBattleDay
         -> Int
         -> (Int, Double)
         -> Map Position (Maybe Unit)
-      applyCasualties line i (casualties, morale) = undefined
+      applyCasualties line i casualties =
+        Map.adjust (fmap (takeCasualties casualties)) (Front, i) line
 
 
       endOfDayLine1 :: Map Position (Maybe Unit)
-      endOfDayLine1
+      endOfDayLine1 =
         -- I'm going to have to think about how this function works.  It's
         -- line one that would find the targets to deal damage to line2, but
         -- I can't map over line1 to get the casualty results for line2, since
@@ -48,23 +50,26 @@ engageBattleDay
         -- this thing.
 
         -- apply inflictedCasualties1 to line1
-        = Vector.ifoldl'
+        Vector.ifoldl'
           applyCasualties -- Map of line -> (casualties, morale) -> result Map
           line1           -- default value for fold
           inflictedCasualties1
 
 
       endOfDayLine2 :: Map Position (Maybe Unit)
-      endOfDayLine2
-        = undefined
+      endOfDayLine2 =
+        Vector.ifoldl'
+          applyCasualties -- Map of line -> (casualties, morale) -> result Map
+          line2           -- default value for fold
+          inflictedCasualties2
 
       endOfDayPlayer1 :: Player
-      endOfDayPlayer1
-        = Player role1 diceRoll1 tmod1 fire1 shock1 endOfDayLine1
+      endOfDayPlayer1 =
+        Player role1 diceRoll1 tmod1 fire1 shock1 endOfDayLine1
 
       endOfDayPlayer2 :: Player
-      endOfDayPlayer2
-        = Player role2 diceRoll2 tmod2 fire2 shock2 endOfDayLine2
+      endOfDayPlayer2 =
+        Player role2 diceRoll2 tmod2 fire2 shock2 endOfDayLine2
 
 -- Since there are some pretty random modifiers that can occur, like some
 -- nations having extra fire damage or reduced fire damage taken, or units
@@ -76,19 +81,10 @@ inflictCasualties
   -> Int              -- Dice roll of morale attacker
   -> Unit             -- Attacking unit
   -> Unit             -- Defending unit
+  -- -> [Double]         -- list of 'extra' modifiers (possibility)
   -> (Int, Double)       -- return (casualties, morale) inflicted
-inflictCasualties dieRoll atkUnit defUnit = undefined
+inflictCasualties dieRollPhase dieRollMorale atkUnit defUnit = undefined
 
-rollDice
-  :: Int              -- Dice roll of phase for attacker
-  -> Int              -- Terrain modifier
-  -> Int              -- Attacking unit's general's pips for this phase
-  -> Int              -- Defending unit's general's pips for this phase
-  -> Int              -- Attacking unit's pips for this phase
-  -> Int              -- Defending unit's pips for this phase
-  -> Int              -- Dice roll result
-rollDice roll tmod atkGen defGen atkUnit defUnit
-  = roll + tmod + atkGen - defGen + atkUnit - defUnit
 
 -- this is the (casualties, morale) that the first player inflicts
 -- on the second
@@ -106,6 +102,7 @@ inflictedCasualties
                                                  -- and morale
       (Vector.replicate 40 (0,0)) -- initial casualties (0,0)
       casualtiesList
+
   where
     phaseSkill1 :: Int
     phaseSkill1 = case phase of
@@ -117,20 +114,10 @@ inflictedCasualties
       Fire -> fire2
       Shock -> shock2
 
-    diceRollPhase1 :: Int
-    diceRollPhase1 = undefined
+    diceRollIntermediate :: Int
+    diceRollIntermediate =
+      diceRoll1 + tmod1 + phaseSkill1 - phaseSkill2
 
-    diceRollPhase2 :: Int
-    diceRollPhase2 = undefined
-
-    diceRollMorale1 :: Int
-    diceRollMorale1 = undefined
-
-    diceRollMorale2 :: Int
-    diceRollMorale2 = undefined
-
-    findTarget :: Position -> Maybe Int -- target ID#, if found
-    findTarget = undefined
 
     -- plan:
     -- map over 0-39 front and back for line1 (which is a Map),
@@ -144,6 +131,7 @@ inflictedCasualties
     casualtiesList = catMaybes
       $  (attemptInflict <$> (zip (repeat Front) [0,39]))
       ++ (attemptInflict <$> (zip (repeat Back) [0,39]))
+
       where
         -- This function needs to have the unit that corresponds to
         -- this index attempt to find a valid target to inflict
@@ -151,12 +139,79 @@ inflictedCasualties
         -- unit.
         attemptInflict :: Position -> Maybe (Int, (Int, Double))
         attemptInflict pos@(l, i) = do
-          target :: Int <- findTarget pos
           unitAttacker :: Unit <- line1 ! pos
+
+          let
+            findTarget :: Maybe Int -- target ID#, if found
+            findTarget =
+              -- strategy:
+              -- find list of valid indecies starting from i, going towards
+              -- the middle flanking -1 times.
+              -- use this list to find first Just value, if it exists
+              find (\x -> isJust (line2 ! (Front, x))) indecies
+
+              where
+                step :: Int
+                step = if i < 39 `div` 2 then 1 else -1
+
+                indecies :: [Int]
+                indecies =
+                  [  i        -- start across
+                  ,  i + step -- step towards center
+                  .. i + step * ((flanking unitAttacker) - 1)]
+                              -- flanking -1 number of spaces to look for unit
+
+          target :: Int <- findTarget
           unitTarget :: Unit <- line2 ! (Front, target)
+
+          let
+            supportUnit :: Maybe Unit
+            supportUnit = line2 ! (Back, target)
+
+            supportPhaseBonus :: Int
+            supportPhaseBonus = case supportUnit of
+              Nothing -> 0
+              Just sup -> case unitType sup of
+                Artillery -> case phase of
+                  Fire  -> dFirePips sup `div` 2
+                  Shock -> dFirePips sup `div` 2
+                _ -> 0
+
+            supportMoraleBonus :: Int
+            supportMoraleBonus = case supportUnit of
+              Nothing -> 0
+              Just sup -> case unitType sup of
+                Artillery -> dMoralePips sup `div` 2
+                _ -> 0
+
+            --       offensive phase pips of attacking unit
+            -- minus defensive phase pips of defending unit
+            deltaUnitPhasePips :: Int
+            deltaUnitPhasePips = case phase of
+              Fire ->
+                  (oFirePips unitAttacker)
+                - (dFirePips unitTarget)
+              Shock ->
+                  (oShockPips unitAttacker)
+                - (dShockPips unitTarget)
+
+            diceRollPhase :: Int
+            diceRollPhase =
+                diceRollIntermediate
+              + deltaUnitPhasePips
+              - supportPhaseBonus
+
+            diceRollMorale :: Int
+            diceRollMorale =
+                diceRollIntermediate
+              + (oMoralePips unitAttacker)
+              - (dMoralePips unitTarget)
+              - supportMoraleBonus
+
           Just
-            (target, (inflictCasualties
-              diceRollPhase1
-              diceRollMorale1
-              unitAttacker
-                unitTarget))
+            (  target
+            , (inflictCasualties
+                 diceRollPhase
+                 diceRollMorale
+                 unitAttacker
+                 unitTarget) )
