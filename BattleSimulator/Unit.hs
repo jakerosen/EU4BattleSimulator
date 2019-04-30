@@ -4,6 +4,7 @@ import GHC.Generics
 import Data.Function
 import Control.Lens
 import Data.Generics.Product.Any
+import BattleSimulator.Phase
 
 data Unit
   = Unit
@@ -41,3 +42,9 @@ takeCasualties (casualties, morale) unit =
   unit
     & the @"strength" %~ (subtract casualties)
     & the @"currentMorale" %~ (subtract morale)
+
+phaseMod :: Phase -> Unit -> Double
+phaseMod phase unit =
+  case phase of
+    Fire -> fireMod unit
+    Shock -> shockMod unit

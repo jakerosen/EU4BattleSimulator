@@ -77,13 +77,77 @@ engageBattleDay
 -- or even steltsy special units, it might make sense to have a list of 'extra'
 -- modifiers to apply.
 inflictCasualties
-  :: Int              -- Dice roll of phase attacker
+  :: Phase            -- Which mod am I getting
+  -> Int              -- Dice roll of phase attacker
   -> Int              -- Dice roll of morale attacker
+  -> Position         -- position of attacker (for checking backline, etc.)
   -> Unit             -- Attacking unit
   -> Unit             -- Defending unit
-  -- -> [Double]         -- list of 'extra' modifiers (possibility)
+  -> [Double]         -- list of 'extra' modifiers (possibility)
   -> (Int, Double)       -- return (casualties, morale) inflicted
-inflictCasualties dieRollPhase dieRollMorale atkUnit defUnit = undefined
+inflictCasualties
+  phase
+  dieRollPhase
+  dieRollMorale
+  atkPos
+  atkUnit
+  defUnit
+  extraMods =
+    let
+      mod :: Double
+      mod = case atkPos of
+        (Back, _) -> case unitType atkUnit of
+          Artillery -> 0.5
+          _ -> 0
+        (Front, _) -> 1
+
+      baseCasualties :: Int
+      baseCasualties = 15 + 5 * dieRollPhase
+
+      baseMoraleCasualties :: Int
+      baseMoraleCasualties = 15 + 5 * dieRollMorale
+
+      atkMaxMorale :: Double
+      atkMaxMorale = maxMorale atkUnit
+
+      atkStrength :: Double
+      atkStrength = (fromIntegral $ strength atkUnit) / 1000
+
+      atkMod :: Double
+      atkMod = phaseMod phase atkUnit
+
+      atkCombatAbility :: Double
+      atkCombatAbility = combatAbility atkUnit
+
+      atkDiscipline :: Double
+      atkDiscipline = discipline atkUnit
+
+      defTactics :: Double
+      defTactics = tactics defUnit * (discipline defUnit)
+
+      casualtiesIntermediate :: Double
+      casualtiesIntermediate
+        = atkStrength
+        * atkMod
+        * atkCombatAbility
+        * atkDiscipline
+        * defTactics
+        * foldl' (*) 1 extraMods
+
+      casualties :: Int
+      casualties = floor
+        $ (fromIntegral baseCasualties)
+        * casualtiesIntermediate
+
+      moraleCasualties :: Double
+      moraleCasualties =
+          (fromIntegral baseMoraleCasualties)
+        * casualtiesIntermediate
+        * atkMaxMorale
+        / 600
+
+    in
+      (casualties, moraleCasualties)
 
 
 -- this is the (casualties, morale) that the first player inflicts
@@ -208,10 +272,19 @@ inflictedCasualties
               - (dMoralePips unitTarget)
               - supportMoraleBonus
 
+            -- extra modifiers that a unit or player or whatever might have;
+            -- this is not really implemented at all yet, so I still have to
+            -- consider how I am going to approach that in the future.
+            extraMods :: [Double]
+            extraMods = []
+
           Just
             (  target
             , (inflictCasualties
+                 phase
                  diceRollPhase
                  diceRollMorale
+                 pos
                  unitAttacker
-                 unitTarget) )
+                 unitTarget
+                 extraMods) )
