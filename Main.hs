@@ -1,10 +1,33 @@
 module Main where
 
 import Data.Foldable
+import BattleSimulator.Player
 
 main :: IO ()
 main = do
-  pure ()
+  return ()
+
+player1 :: Player
+player1 =
+  Player
+    Attacker
+    40
+    0
+    0
+    0
+    0
+    initialLine
+
+player2 :: Player
+player2 =
+  Player
+    Defender
+    40
+    0
+    0
+    0
+    0
+    initialLine
 
 formatBattleLines :: IO ()
 formatBattleLines = do

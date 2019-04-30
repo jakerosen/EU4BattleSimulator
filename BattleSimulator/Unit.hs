@@ -36,6 +36,7 @@ data UnitType
   = Infantry
   | Cavalry
   | Artillery
+  deriving (Eq)
 
 takeCasualties :: (Int, Double) -> Unit -> Unit
 takeCasualties (casualties, morale) unit =

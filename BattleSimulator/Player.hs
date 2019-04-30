@@ -1,7 +1,15 @@
 module BattleSimulator.Player where
 
+import Data.List
+import Data.Vector (Vector)
+import qualified Data.Vector as Vector
+import Data.Function ((&))
 import Data.Map (Map)
--- import qualified Data.Map.Strict as Map
+import qualified Data.Map.Strict as Map
+import Control.Lens
+-- import GHC.Generics
+import Data.Generics.Product.Any
+-- import Control.Monad.State.Lazy
 -- import BattleSimulator.Node -- candidate to be removed
 import BattleSimulator.Unit
 
@@ -10,6 +18,7 @@ import BattleSimulator.Unit
 data Player
   = Player
   { role :: Role
+  , combatWidth :: Int
   , phaseDiceRoll :: Int
   , terrainMod :: Int
   , generalFire :: Int
@@ -36,3 +45,87 @@ data Line = Front | Back
 -- 0 on the left and 39 on the right, with no mirroring.  As such, the target
 -- across from x can be calculated as target = 39 - x.
 type Position = (Line, Int)
+
+-- A battle line initialized with 40 front and 40 back positions, with no units
+initialLine :: Map Position (Maybe Unit)
+initialLine = Map.fromList list
+  where
+    list :: [(Position, Maybe Unit)]
+    list = zip positions (repeat Nothing)
+
+    positions :: [Position]
+    positions = zip (repeat Front) [0..39] ++ (zip (repeat Back) [0..39])
+
+-- Algorithm for forming battle lines:`
+-- Smaller line:
+--  -> Deploy all infantry in front line, up to combat width - X where X
+--     is flanking of cavalry
+--  -> Deploy all cavalry adjacent to infantry in front line, up to combat
+--     width
+--  -> Deploy all artillery in back line, starting from center, up to combat
+--     width
+--  -> remaining infantry in back line, up to combat width
+--  -> remaining cavalry go in back line, starting from edge, going inward
+--
+-- Larger line:
+--  -> Deploy all infantry in front line that can attack enemy units.  In
+--     practice, this means that you would deploy all infantry up to the
+--     number of units in the opponent's front line + flanking of your
+--     infantry
+--  -> Deploy all cavalry in front line that can attack enemy units, up to
+--     combat width
+--  -> Deploy all artillery in back line, up to combat width.
+--  -> Deploy all remaining infantry in back line while there are infantry
+--     in front, up to combat width
+--  -> Deploy all remaining cavalry in back line while there are positions
+--     behind cavalry in front, up to combat width
+formBattleLines
+  :: (Player, [Unit])
+  -> (Player, [Unit])
+  -> (Player, Player)
+formBattleLines group1@(p1, units1) group2@(p2, units2) = undefined
+  where
+    -- numUnitsLarger :: Int
+    -- numUnitsLarger = length _
+
+    -- numUnitsSmaller :: Int
+    -- numUnitsSmaller = length _
+
+    (larger, smaller) :: ((Player, [Unit]), (Player, [Unit]))
+      = if (length units1) > (length units2)
+        then (group1, group2) -- player 1 has a larger line
+        else (group2, group1) -- player 2 has a larger line
+
+    widthSmaller :: Int
+    widthSmaller = fst smaller & combatWidth
+    -- widthSmaller = view (_1 . the @"combatWidth") smaller
+    -- widthSmaller = evalState (uses _1 combatWidth) smaller
+
+    widthLarger :: Int
+    widthLarger = fst larger & combatWidth
+
+    -- I can't do the following because I don't believe it would work well if
+    -- there aren't all 3 unit types
+    -- [smallerInfantry, smallerCavalry, smallerArtillery] :: [[Unit]]
+    --   = groupBy (\u1 u2 -> unitType u1 == (unitType u2)) (snd smaller)
+
+    -- partition these units into ([infantry], [cavalry], [artillery])
+    partitionUnits :: [Unit] -> ([Unit], [Unit], [Unit])
+    partitionUnits units = (infantry, cavalry, artillery)
+      where
+        (infantry, rest) :: ([Unit], [Unit])
+          = partition (\unit -> unitType unit == Infantry) (snd smaller)
+
+        (cavalry, artillery) :: ([Unit], [Unit])
+          = partition (\unit -> unitType unit == Cavalry) rest
+
+    (smallerInfantry, smallerCavalry, smallerArtillery)
+      :: ([Unit], [Unit], [Unit])
+      = partitionUnits (snd smaller)
+
+    (largerInfantry, largerCavalry, largerArtillery)
+      :: ([Unit], [Unit], [Unit])
+      = partitionUnits (snd larger)
+
+    smallerFront :: Vector (Maybe Unit)
+    smallerFront = undefined

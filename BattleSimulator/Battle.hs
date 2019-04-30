@@ -18,8 +18,8 @@ import BattleSimulator.Phase
 engageBattleDay :: Phase -> Player -> Player -> (Player, Player)
 engageBattleDay
   phase
-  p1@(Player role1 diceRoll1 tmod1 fire1 shock1 line1)
-  p2@(Player role2 diceRoll2 tmod2 fire2 shock2 line2)
+  p1@(Player role1 width1 diceRoll1 tmod1 fire1 shock1 line1)
+  p2@(Player role2 width2 diceRoll2 tmod2 fire2 shock2 line2)
   = (endOfDayPlayer1, endOfDayPlayer2)
 
     where
@@ -65,11 +65,11 @@ engageBattleDay
 
       endOfDayPlayer1 :: Player
       endOfDayPlayer1 =
-        Player role1 diceRoll1 tmod1 fire1 shock1 endOfDayLine1
+        Player role1 width1 diceRoll1 tmod1 fire1 shock1 endOfDayLine1
 
       endOfDayPlayer2 :: Player
       endOfDayPlayer2 =
-        Player role2 diceRoll2 tmod2 fire2 shock2 endOfDayLine2
+        Player role2 width2 diceRoll2 tmod2 fire2 shock2 endOfDayLine2
 
 -- Since there are some pretty random modifiers that can occur, like some
 -- nations having extra fire damage or reduced fire damage taken, or units
@@ -97,9 +97,9 @@ inflictCasualties
       mod :: Double
       mod = case atkPos of
         (Back, _) -> case unitType atkUnit of
-          Artillery -> 0.5
-          _ -> 0
-        (Front, _) -> 1
+          Artillery -> 0.5          -- Artillery do 50% damage from back row
+          _ -> 0                    -- All other units do no damage in back
+        (Front, _) -> 1             -- Normal damage for all units in front
 
       baseCasualties :: Int
       baseCasualties = 15 + 5 * dieRollPhase
@@ -156,8 +156,8 @@ inflictCasualties
 inflictedCasualties :: Phase -> Player -> Player -> Vector (Int, Double)
 inflictedCasualties
   phase
-  (Player role1 diceRoll1 tmod1 fire1 shock1 line1)
-  (Player role2 diceRoll2 tmod2 fire2 shock2 line2)
+  (Player role1 width1 diceRoll1 tmod1 fire1 shock1 line1)
+  (Player role2 width2 diceRoll2 tmod2 fire2 shock2 line2)
   =
     -- accumulate the results of the casualties list into a vector
     -- of casualties
