@@ -6,8 +6,9 @@ import qualified Data.Vector as Vector
 import Data.Function ((&))
 import Data.Map (Map)
 import qualified Data.Map.Strict as Map
+import Control.Category ((>>>))
 import Control.Lens
--- import GHC.Generics
+import GHC.Generics
 import Data.Generics.Product.Any
 -- import Control.Monad.State.Lazy
 -- import BattleSimulator.Node -- candidate to be removed
@@ -24,7 +25,7 @@ data Player
   , generalFire :: Int
   , generalShock :: Int
   , line :: Map Position (Maybe Unit)
-  }
+  } deriving Generic
 
 data Role = Attacker | Defender
 
@@ -97,12 +98,14 @@ formBattleLines group1@(p1, units1) group2@(p2, units2) = undefined
         else (group2, group1) -- player 2 has a larger line
 
     widthSmaller :: Int
-    widthSmaller = fst smaller & combatWidth
+    widthSmaller = smaller ^. _1 . the @"combatWidth"
+    -- widthSmaller = fst smaller & combatWidth
     -- widthSmaller = view (_1 . the @"combatWidth") smaller
     -- widthSmaller = evalState (uses _1 combatWidth) smaller
 
     widthLarger :: Int
-    widthLarger = fst larger & combatWidth
+    widthLarger = larger ^. _1 . the @"combatWidth"
+    -- fst larger & combatWidth
 
     -- I can't do the following because I don't believe it would work well if
     -- there aren't all 3 unit types
@@ -114,10 +117,10 @@ formBattleLines group1@(p1, units1) group2@(p2, units2) = undefined
     partitionUnits units = (infantry, cavalry, artillery)
       where
         (infantry, rest) :: ([Unit], [Unit])
-          = partition (\unit -> unitType unit == Infantry) (snd smaller)
+          = partition (unitType >>> (== Infantry)) (snd smaller)
 
         (cavalry, artillery) :: ([Unit], [Unit])
-          = partition (\unit -> unitType unit == Cavalry) rest
+          = partition (unitType >>> (== Cavalry)) rest
 
     (smallerInfantry, smallerCavalry, smallerArtillery)
       :: ([Unit], [Unit], [Unit])

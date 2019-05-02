@@ -14,7 +14,7 @@ executable EU4BattleSimulator
     , containers
     , lens
     , generic-lens
-    , mtl
+    -- , mtl
   default-extensions:
     ScopedTypeVariables
     DeriveGeneric
