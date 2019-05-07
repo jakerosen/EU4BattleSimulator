@@ -130,5 +130,23 @@ formBattleLines group1@(p1, units1) group2@(p2, units2) = undefined
       :: ([Unit], [Unit], [Unit])
       = partitionUnits (snd larger)
 
+    -- Indecies of unit placement order
+    -- 19, 20, 18, 21, 17, 22, 16 .. 1, 38, 0, 39
+    placementOrder :: [Int]
+    placementOrder = map (+19) adjustments
+      where
+        adjustments :: [Int]
+        adjustments =
+          unfoldr
+            (\b -> if b == -20 -- end at -20; 20 is last adjustment
+              then Nothing
+              -- if positive -> go negative if negative -> go positive + 1
+              -- 0 is a special case, next is 1
+              -- i.e. 0, 1, -1, 2, -2, 3, -3 .. -19, 20
+              else Just (b, if b > 0 then negate b else negate b + 1))
+            0    -- start at 0, next is 1
+
     smallerFront :: Vector (Maybe Unit)
     smallerFront = undefined
+      -- where
+      --   undefined
